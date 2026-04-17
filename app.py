@@ -1,113 +1,113 @@
 
-
 import streamlit as st
 from hospital_reception import HospitalReception
-from patient import Patient
-from general_patient import GeneralPatient
+from general_patient import GeneralPatien
 from emergency_patient import EmergencyPatient
 from surgery_patient import SurgeryPatient
 from api_calling import prescription_generator
 
-st.set_page_config(page_title="Hospital Management", layout="centered")
-st.title("🏥 Hospital Reception System")
+st.title("Hospital Reception")
 st.divider()
+st.title("Patient info")
 
-# ====================== Patient Information ======================
 with st.container(border=True):
-    st.subheader("Patient Information")
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        patient_name = st.text_input("Patient Name", placeholder="Enter full name")
-        patient_id = st.text_input("Patient ID", placeholder="e.g. P-001")
-    with col2:
-        department = st.text_input("Department", value="General OPD")
-        insurance_id = st.text_input("Insurance ID", value="SELF-PAY")
+    st.title("Patient Information input")
 
-# ====================== Admit Patient ======================
+    Patient_name = st.text_input("enter patient name")
+    Patient_id = st.text_input("enter patient id")
+    Department = st.text_input("patient department")
+    Insurance_id = st.text_input("patient insurance id")
+
+# Hospital Reception
 with st.container(border=True):
-    st.markdown("<h3 style='color: green;'>Patient Confirmation Receipt</h3>", unsafe_allow_html=True)
+    st.markdown(
+        "<h2 style='color: green;'>Patient Confirmation Receipt</h2>",
+        unsafe_allow_html=True
+    )
+    recepton = HospitalReception()
     
-    reception = HospitalReception()
-    
-    if st.button("Admit Patient", type="primary"):
-        if not patient_name or not patient_id:
-            st.error("Please enter Patient Name and Patient ID")
-        else:
-            result = reception.admit_patient(patient_name, department, insurance_id)
+    if st.button("Admit Patient"):
+        if Patient_name and Patient_id:
+            result = recepton.admit_patient(Patient_name, Department, Insurance_id)
             st.success(result)
+        else:
+            st.error("Patient Name and Patient ID are required!")
 
-# ====================== Patient Type Selection ======================
-st.subheader("Select Patient Type")
+# Patient Type Selection
 selected = st.selectbox(
-    "Choose patient category",
+    "select",
     ["General Patient", "Emergency Patient", "Surgery Patient"],
-    index=None,
-    placeholder="Select one..."
+    index=None
 )
 
-# ====================== Patient Processing ======================
 with st.container(border=True):
     if selected == "General Patient":
-        symptoms = st.text_input("Enter Symptoms", placeholder="e.g. Fever, cough, headache")
-        
-        if st.button("Generate General Patient Report", type="primary"):
-            if not symptoms:
-                st.warning("Please enter symptoms")
+        Symptoms = st.text_input("input symtomes")
+        if st.button("Generate Patient Report"):
+            if Patient_name and Patient_id and Symptoms:
+                patient = GeneralPatien(Patient_name, Patient_id, Symptoms)
+                result = [
+                    patient.diagnose(),
+                    patient.treat(),
+                    patient.generate_report()
+                ]
+                for r in result:
+                    st.success(r)
             else:
-                patient = GeneralPatient(patient_name, patient_id, symptoms)
-                st.success(patient.diagnose())
-                st.success(patient.treat())
-                st.success(patient.generate_report())
+                st.warning("Please fill Patient Name, ID and Symptoms")
 
-    elif selected == "Emergency Patient":
-        emergency_type = st.text_input("Emergency Type", placeholder="e.g. Cardiac Arrest, Severe Bleeding")
-        
-        if st.button("Generate Emergency Report", type="primary"):
-            if not emergency_type:
-                st.warning("Please enter emergency type")
+    if selected == "Emergency Patient":
+        Emtype = st.text_input("enter patient emergency type")
+        if st.button("Generate Patient Report"):
+            if Patient_name and Patient_id and Emtype:
+                patient = EmergencyPatient(Patient_name, Patient_id, Emtype)
+                result = [
+                    patient.diagnose(),
+                    patient.treat(),
+                    patient.generate_report()
+                ]
+                for r in result:
+                    st.success(r)
             else:
-                patient = EmergencyPatient(patient_name, patient_id, emergency_type)
-                st.success(patient.diagnose())
-                st.success(patient.treat())
-                st.success(patient.generate_report())
+                st.warning("Please fill all required fields")
 
-    elif selected == "Surgery Patient":
-        surgery_type = st.text_input("Surgery Type", placeholder="e.g. Appendectomy")
-        surgeon_name = st.text_input("Surgeon Name", placeholder="Dr. Khan")
-        
-        if st.button("Generate Surgery Report", type="primary"):
-            if not surgery_type or not surgeon_name:
-                st.warning("Please fill Surgery Type and Surgeon Name")
+    if selected == "Surgery Patient":
+        surgr_typ = st.text_input("enter surgery type")
+        surgen_nmae = st.text_input("enter Surgeon Name")
+        if st.button("Generate Patient Report"):
+            if Patient_name and Patient_id and surgr_typ and surgen_nmae:
+                patient = SurgeryPatient(Patient_name, Patient_id, surgr_typ, surgen_nmae)
+                result = [
+                    patient.diagnose(),
+                    patient.treat(),
+                    patient.generate_report()
+                ]
+                for r in result:
+                    st.success(r)
             else:
-                patient = SurgeryPatient(patient_name, patient_id, surgery_type, surgeon_name)
-                st.success(patient.diagnose())
-                st.success(patient.treat())
-                st.success(patient.generate_report())
+                st.warning("Please fill all required fields")
 
-# ====================== AI Prescription ======================
+# AI Prescription Section
 with st.container(border=True):
-    st.subheader("🩺 AI Doctor Prescription")
-    
-    if st.button("Generate AI Prescription", type="primary"):
+    st.title("AI Doctor Prescription")
+    if st.button("Generate Prescription"):
         if not selected:
-            st.error("Please select a patient type first")
+            st.error("Please select a patient type first!")
         else:
-            with st.spinner("Generating prescription..."):
+            with st.spinner("Generating AI prescription..."):
                 try:
                     if selected == "General Patient":
-                        input_text = symptoms if 'symptoms' in locals() else ""
+                        response = prescription_generator(Symptoms)
                     elif selected == "Emergency Patient":
-                        input_text = emergency_type if 'emergency_type' in locals() else ""
+                        response = prescription_generator(Emtype)
+                    elif selected == "Surgery Patient":
+                        response = prescription_generator(surgr_typ)
                     else:
-                        input_text = surgery_type if 'surgery_type' in locals() else ""
+                        response = None
                     
-                    if input_text:
-                        response = prescription_generator(input_text)
+                    if response:
                         st.markdown(response.text)
                     else:
-                        st.warning("No input data available for prescription")
+                        st.warning("No input data for prescription")
                 except Exception as e:
-                    st.error(f"Failed to generate prescription: {e}")
-
-st.caption("Hospital Management System | Built with OOP + Gemini AI")
+                    st.error(f"Error generating prescription: {str(e)}")
